@@ -189,6 +189,38 @@ void ssd1306_rect(ssd1306_t *ssd, uint8_t top, uint8_t left, uint8_t width, uint
   }
 }
 
+// Desenha um círculo no display
+void ssd1306_circle(ssd1306_t *ssd, uint8_t x0, uint8_t y0, uint8_t radius, bool value)
+{
+  int x = radius;
+  int y = 0;
+  int err = 0;
+
+  while (x >= y)
+  {
+    ssd1306_pixel(ssd, x0 + x, y0 + y, value);
+    ssd1306_pixel(ssd, x0 + y, y0 + x, value);
+    ssd1306_pixel(ssd, x0 - y, y0 + x, value);
+    ssd1306_pixel(ssd, x0 - x, y0 + y, value);
+    ssd1306_pixel(ssd, x0 - x, y0 - y, value);
+    ssd1306_pixel(ssd, x0 - y, y0 - x, value);
+    ssd1306_pixel(ssd, x0 + y, y0 - x, value);
+    ssd1306_pixel(ssd, x0 + x, y0 - y, value);
+
+    if (err <= 0)
+    {
+      y += 1;
+      err += 2 * y + 1;
+    }
+
+    if (err > 0)
+    {
+      x -= 1;
+      err -= 2 * x + 1;
+    }
+  }
+}
+
 
 // Desenha uma linha no display
 void ssd1306_line(ssd1306_t *ssd, uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1, bool value)
@@ -279,18 +311,6 @@ void ssd1306_draw_string(ssd1306_t *ssd, const char *str, uint8_t x, uint8_t y)
       break;
     }
   }
-}
-
-// Inicializa o display
-void displayssd1306_init()
-{
-  // I2C Initialisation. Using it at 400Khz.
-  i2c_init(I2C_PORT, 400 * 1000);
-
-  gpio_set_function(I2C_SDA, GPIO_FUNC_I2C); // Set the GPIO pin function to I2C
-  gpio_set_function(I2C_SCL, GPIO_FUNC_I2C); // Set the GPIO pin function to I2C
-  gpio_pull_up(I2C_SDA); // Pull up the data line
-  gpio_pull_up(I2C_SCL); // Pull up the clock line
 }
 
 #endif
