@@ -72,11 +72,11 @@ static inline void update_display_with_joystick()
         y_max = 32 + 27 - 3;
         break;
     case 5:
-        ssd1306_circle(&ssd, 64, 32, 32, cor); // Círculo grande
-        x_min = 64 - 32 + 3;                   // Ajuste para manter o quadrado dentro do círculo
-        x_max = 64 + 32 - 3;
-        y_min = 32 - 32 + 3;
-        y_max = 32 + 32 - 3;
+        ssd1306_circle(&ssd, 64, 32, 31, cor); // Círculo grande
+        x_min = 64 - 31 + 3;                   // Ajuste para manter o quadrado dentro do círculo
+        x_max = 64 + 31 - 3;
+        y_min = 32 - 31 + 3;
+        y_max = 32 + 31 - 3;
         break;
     case 6:
         ssd1306_rect(&ssd, 0, 0, 128, 64, !cor, !cor); // Sem retângulo
