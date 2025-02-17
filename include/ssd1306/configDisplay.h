@@ -65,20 +65,27 @@ static inline void update_display_with_joystick()
         y_min = 20, y_max = 56;
         break;
     case 4:
+        ssd1306_circle(&ssd, 64, 32, 15, cor); // Círculo pequeno
+        x_min = 64 - 15 + 3;                   // Ajuste para manter o triangulo dentro do círculo
+        x_max = 64 + 15 - 3;
+        y_min = 32 - 15 + 3;
+        y_max = 32 + 15 - 3;
+        break;
+    case 5:
         ssd1306_circle(&ssd, 64, 32, 27, cor); // Círculo médio
-        x_min = 64 - 27 + 3;                   // Ajuste para manter o quadrado dentro do círculo
+        x_min = 64 - 27 + 3;                   // Ajuste para manter o triangulo dentro do círculo
         x_max = 64 + 27 - 3;
         y_min = 32 - 27 + 3;
         y_max = 32 + 27 - 3;
         break;
-    case 5:
+    case 6:
         ssd1306_circle(&ssd, 64, 32, 31, cor); // Círculo grande
-        x_min = 64 - 31 + 3;                   // Ajuste para manter o quadrado dentro do círculo
+        x_min = 64 - 31 + 3;                   // Ajuste para manter o triangulo dentro do círculo
         x_max = 64 + 31 - 3;
         y_min = 32 - 31 + 3;
         y_max = 32 + 31 - 3;
         break;
-    case 6:
+    case 7:
         ssd1306_rect(&ssd, 0, 0, 128, 64, !cor, !cor); // Sem retângulo
         break;
     }
@@ -99,6 +106,7 @@ static inline void update_display_with_joystick()
     if (y1 < y_min) y1 = y_min; // Ajuste para manter o triângulo dentro do retângulo
     if (y2 < y_min) y2 = y_min; // Ajuste para manter o triângulo dentro do retângulo
 
+    // Desenha o triângulo
     ssd1306_line(&ssd, x1, y1, x2, y2, cor);
     ssd1306_line(&ssd, x2, y2, x3, y3, cor);
     ssd1306_line(&ssd, x3, y3, x1, y1, cor);
@@ -124,7 +132,7 @@ static inline void handle_joystick_button_press()
     gpio_put(LED_G, local_led_state);
 
     // Muda o estilo da borda
-    rect_stage = (rect_stage + 1) % 6;
+    rect_stage = (rect_stage + 1) % 7;
 
     update_display_with_joystick();
 }
