@@ -1,31 +1,47 @@
-#include <stdio.h>
-#include "pico/stdlib.h"
-#include "hardware/i2c.h"
+#include "include/biblioteca.h"
 
-// I2C defines
-// This example will use I2C0 on GPIO8 (SDA) and GPIO9 (SCL) running at 400KHz.
-// Pins can be changed, see the GPIO function select table in the datasheet for information on GPIO assignments
-#define I2C_PORT i2c0
-#define I2C_SDA 8
-#define I2C_SCL 9
+uint32_t last_print_time = 0; // Variável para controle de tempo do printf
 
+uint16_t vrx_value = 2048;
+uint16_t vry_value = 2048;
 
+bool sw_value = false;
+bool led_state = false;
 
 int main()
 {
-    stdio_init_all();
+    stdio_init_all(); // Inicializa entrada e saída padrão
 
-    // I2C Initialisation. Using it at 400Khz.
-    i2c_init(I2C_PORT, 400*1000);
-    
-    gpio_set_function(I2C_SDA, GPIO_FUNC_I2C);
-    gpio_set_function(I2C_SCL, GPIO_FUNC_I2C);
-    gpio_pull_up(I2C_SDA);
-    gpio_pull_up(I2C_SCL);
-    // For more examples of I2C use see https://github.com/raspberrypi/pico-examples/tree/master/i2c
+    adc_init(); // Inicializa o ADC (conversor analógico-digital)
 
-    while (true) {
-        printf("Hello, world!\n");
-        sleep_ms(1000);
+    displayssd1306_init(); // Inicializa o display
+
+    init_joystick(); // Inicializa os pinos do joystick
+
+    init_LED_G(); // inicialização do LED verde
+
+    init_pwm_gpio(); // Inicialização dos pinos pwm
+
+    init_BUTTON_A(); // inicialização do botão A
+
+    // Configuração da interrupção com callback para botão A
+    gpio_set_irq_enabled_with_callback(BUTTON_A, GPIO_IRQ_EDGE_FALL, true, &gpio_irq_handler);
+
+    while (true)
+    {
+        // Leitura dos valores do joystick e botão (encontra-se no cabeçalho joystick.h)
+        leitura_adc();
+
+        // Função responsável por configuração do joystick controlar os leds (encontra-se no cabeçalho joystick.h)
+        control_joystick_leds();
+
+        // Função responsável pelas informações do display (encontra-se no cabeçalho displayconfig.h)
+        update_display_with_joystick();
+
+        // Função responsável por imprimir a leitura do adc (encontra-se no cabeçalho joystick.h)
+        print_leitura_adc();
+
+        sleep_ms(100);
     }
+    return 0;
 }
