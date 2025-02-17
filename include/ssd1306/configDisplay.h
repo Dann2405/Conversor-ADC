@@ -43,7 +43,7 @@ static inline void update_display_with_joystick()
 
     // Limites iniciais da área mapeada
     int x_min = 0, x_max = 120;
-    int y_min = 0, y_max = 56;
+    int y_min = 0, y_max = 63;
 
     // Configura os limites do retângulo conforme o estágio atual
     switch (rect_stage)
@@ -66,17 +66,17 @@ static inline void update_display_with_joystick()
         break;
     case 4:
         ssd1306_circle(&ssd, 64, 32, 27, cor); // Círculo médio
-        x_min = 64 - 27 + 3.14;                   // Ajuste para manter o quadrado dentro do círculo
-        x_max = 64 + 27 - 3.14;
-        y_min = 32 - 27 + 3.14;
-        y_max = 32 + 27 - 3.14;
+        x_min = 64 - 27 + 3;                   // Ajuste para manter o quadrado dentro do círculo
+        x_max = 64 + 27 - 3;
+        y_min = 32 - 27 + 3;
+        y_max = 32 + 27 - 3;
         break;
     case 5:
         ssd1306_circle(&ssd, 64, 32, 32, cor); // Círculo grande
-        x_min = 64 - 32 + 3.14;                   // Ajuste para manter o quadrado dentro do círculo
-        x_max = 64 + 32 - 3.14;
-        y_min = 32 - 32 + 3.14;
-        y_max = 32 + 32 - 3.14;
+        x_min = 64 - 32 + 3;                   // Ajuste para manter o quadrado dentro do círculo
+        x_max = 64 + 32 - 3;
+        y_min = 32 - 32 + 3;
+        y_max = 32 + 32 - 3;
         break;
     case 6:
         ssd1306_rect(&ssd, 0, 0, 128, 64, !cor, !cor); // Sem retângulo
@@ -91,6 +91,14 @@ static inline void update_display_with_joystick()
     int x1 = joystick_x, y1 = joystick_y;
     int x2 = joystick_x + 4, y2 = joystick_y;
     int x3 = joystick_x + 2, y3 = joystick_y - 4;
+
+    // Limita as coordenadas do triângulo
+    if (x2 > x_max) x2 = x_max;
+    if (x3 > x_max) x3 = x_max;
+    if (y3 < y_min) y3 = y_min;
+    if (y1 < y_min) y1 = y_min; // Ajuste para manter o triângulo dentro do retângulo
+    if (y2 < y_min) y2 = y_min; // Ajuste para manter o triângulo dentro do retângulo
+
     ssd1306_line(&ssd, x1, y1, x2, y2, cor);
     ssd1306_line(&ssd, x2, y2, x3, y3, cor);
     ssd1306_line(&ssd, x3, y3, x1, y1, cor);
