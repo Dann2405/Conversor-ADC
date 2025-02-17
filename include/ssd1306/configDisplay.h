@@ -12,7 +12,8 @@ ssd1306_t ssd; // Estrutura do display
 
 // Variáveis internas do display
 static bool cor = true;
-static int rect_stage = 0;
+static int rect_stage = 0;       // Controla o estilo da borda
+static int shape_mode = 0;       // 0: desenha quadrado, 1: desenha triângulo
 static int joystick_x = 0, joystick_y = 0;
 
 // Inicializa o display SSD1306
@@ -35,7 +36,7 @@ void displayssd1306_init()
     ssd1306_send_data(&ssd);
 }
 
-// Atualiza o display com as informações do joystick
+// Atualiza o display com as informações do joystick e desenha o formato (quadrado ou triângulo)
 static inline void update_display_with_joystick()
 {
     // Limpa o display com a cor inversa
@@ -43,9 +44,9 @@ static inline void update_display_with_joystick()
 
     // Limites iniciais da área mapeada
     int x_min = 0, x_max = 120;
-    int y_min = 0, y_max = 63;
+    int y_min = 0, y_max = 56;
 
-    // Configura os limites do retângulo conforme o estágio atual
+    // Configura os limites do retângulo (ou círculo) conforme o estágio atual
     switch (rect_stage)
     {
     case 0:
@@ -66,21 +67,21 @@ static inline void update_display_with_joystick()
         break;
     case 4:
         ssd1306_circle(&ssd, 64, 32, 15, cor); // Círculo pequeno
-        x_min = 64 - 15 + 3;                   // Ajuste para manter o triangulo dentro do círculo
+        x_min = 64 - 15 + 3;
         x_max = 64 + 15 - 3;
         y_min = 32 - 15 + 3;
         y_max = 32 + 15 - 3;
         break;
     case 5:
         ssd1306_circle(&ssd, 64, 32, 27, cor); // Círculo médio
-        x_min = 64 - 27 + 3;                   // Ajuste para manter o triangulo dentro do círculo
+        x_min = 64 - 27 + 3;
         x_max = 64 + 27 - 3;
         y_min = 32 - 27 + 3;
         y_max = 32 + 27 - 3;
         break;
     case 6:
         ssd1306_circle(&ssd, 64, 32, 31, cor); // Círculo grande
-        x_min = 64 - 31 + 3;                   // Ajuste para manter o triangulo dentro do círculo
+        x_min = 64 - 31 + 3;
         x_max = 64 + 31 - 3;
         y_min = 32 - 31 + 3;
         y_max = 32 + 31 - 3;
@@ -94,22 +95,30 @@ static inline void update_display_with_joystick()
     joystick_x = (vrx_value * (x_max - x_min)) / 4095 + x_min;
     joystick_y = y_max - (vry_value * (y_max - y_min)) / 4095;
 
-    // Desenha um triângulo na posição calculada
-    int x1 = joystick_x, y1 = joystick_y;
-    int x2 = joystick_x + 4, y2 = joystick_y;
-    int x3 = joystick_x + 2, y3 = joystick_y - 4;
+    // Desenha o formato com base no modo atual (shape_mode)
+    if (shape_mode == 0)
+    {
+        // Desenha um quadrado de 8x8 pixels na posição calculada
+        ssd1306_rect(&ssd, joystick_y, joystick_x, 4, 4, cor, true);
+    }
+    else
+    {
+        // Desenha um triângulo na posição calculada
+        int x1 = joystick_x, y1 = joystick_y;
+        int x2 = joystick_x + 4, y2 = joystick_y;
+        int x3 = joystick_x + 2, y3 = joystick_y - 4;
 
-    // Limita as coordenadas do triângulo
-    if (x2 > x_max) x2 = x_max;
-    if (x3 > x_max) x3 = x_max;
-    if (y3 < y_min) y3 = y_min;
-    if (y1 < y_min) y1 = y_min; // Ajuste para manter o triângulo dentro do retângulo
-    if (y2 < y_min) y2 = y_min; // Ajuste para manter o triângulo dentro do retângulo
+        // Limita as coordenadas do triângulo
+        if (x2 > x_max) x2 = x_max;
+        if (x3 > x_max) x3 = x_max;
+        if (y3 < y_min) y3 = y_min;
+        if (y1 < y_min) y1 = y_min;
+        if (y2 < y_min) y2 = y_min;
 
-    // Desenha o triângulo
-    ssd1306_line(&ssd, x1, y1, x2, y2, cor);
-    ssd1306_line(&ssd, x2, y2, x3, y3, cor);
-    ssd1306_line(&ssd, x3, y3, x1, y1, cor);
+        ssd1306_line(&ssd, x1, y1, x2, y2, cor);
+        ssd1306_line(&ssd, x2, y2, x3, y3, cor);
+        ssd1306_line(&ssd, x3, y3, x1, y1, cor);
+    }
 
     // Atualiza o display
     ssd1306_send_data(&ssd);
@@ -131,7 +140,10 @@ static inline void handle_joystick_button_press()
     local_led_state = !local_led_state;
     gpio_put(LED_G, local_led_state);
 
-    // Muda o estilo da borda
+    // Alterna o modo de desenho: 0 para quadrado, 1 para triângulo
+    shape_mode = (shape_mode + 1) % 2;
+
+    // Atualiza o estilo da borda (pode ser mantido ou alterado conforme sua preferência)
     rect_stage = (rect_stage + 1) % 7;
 
     update_display_with_joystick();
