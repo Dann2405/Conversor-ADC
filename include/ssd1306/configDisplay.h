@@ -1,286 +1,119 @@
 #ifndef CONFIGDISPLAY_H
 #define CONFIGDISPLAY_H
 
-// Cabeçalho responsavel por definir as funções de configuração do display OLED SSD1306 e funções de exibição de imagens e textos
+// Variáveis externas do joystick
+extern uint16_t vrx_value;
+extern uint16_t vry_value;
+extern bool sw_value;
+extern bool led_state;
+extern const uint LED_G;
 
-bool cor = true;
+ssd1306_t ssd; // Estrutura do display
 
-void config_display()
+// Variáveis internas do display
+static bool cor = true;
+static int rect_stage = 0;
+static int joystick_x = 0, joystick_y = 0;
+
+// Inicializa o display SSD1306
+void displayssd1306_init()
 {
-    // Configuração do display SSD1306
-    ssd1306_t ssd;                                                // Inicializa a estrutura do display
-    ssd1306_init(&ssd, WIDTH, HEIGHT, false, endereco, I2C_PORT); // Inicializa o display
-    ssd1306_config(&ssd);                                         // Configura o display
-    ssd1306_send_data(&ssd);                                      // Envia os dados para o display
+    // Inicializa o I2C a 400Khz
+    i2c_init(I2C_PORT, 400 * 1000);
+    gpio_set_function(I2C_SDA, GPIO_FUNC_I2C);
+    gpio_set_function(I2C_SCL, GPIO_FUNC_I2C);
+    gpio_pull_up(I2C_SDA);
+    gpio_pull_up(I2C_SCL);
 
-    // Limpa o display. O display inicia com todos os pixels apagados.
+    // Inicializa e configura o display
+    ssd1306_init(&ssd, WIDTH, HEIGHT, false, endereco, I2C_PORT);
+    ssd1306_config(&ssd);
+    ssd1306_send_data(&ssd);
+
+    // Limpa o display
     ssd1306_fill(&ssd, false);
     ssd1306_send_data(&ssd);
 }
 
-void imagem_inicial()
+// Atualiza o display com as informações do joystick
+static inline void update_display_with_joystick()
 {
-    ssd1306_t ssd; // Declare the ssd variable
-    ssd1306_init(&ssd, WIDTH, HEIGHT, false, endereco, I2C_PORT); // Initialize the display
+    // Limpa o display com a cor inversa
+    ssd1306_fill(&ssd, !cor);
 
-    cor = !cor;
-    // Atualiza o conteúdo do display com animações
-    ssd1306_fill(&ssd, !cor); // Limpa o display
-    ssd1306_rect(&ssd, 3, 3, 122, 58, cor, !cor); // Desenha um retângulo
-    ssd1306_draw_string(&ssd, "  Comunicacao", 8, 10); // Desenha uma string
-    ssd1306_draw_string(&ssd, "   Serial", 20, 30); // Desenha uma string
-    ssd1306_draw_string(&ssd, "Autor Daniel", 15, 48); // Desenha uma string      
-    ssd1306_send_data(&ssd); // Atualiza o display
+    // Limites iniciais da área mapeada
+    int x_min = 0, x_max = 120;
+    int y_min = 0, y_max = 56;
+
+    // Configura os limites do retângulo conforme o estágio atual
+    switch (rect_stage)
+    {
+    case 0:
+        ssd1306_rect(&ssd, 0, 0, 128, 64, !cor, !cor); // Sem retângulo
+        break;
+    case 1:
+        ssd1306_rect(&ssd, 0, 0, 128, 64, cor, !cor); // Retângulo grande
+        break;
+    case 2:
+        ssd1306_rect(&ssd, 10, 10, 108, 54, cor, !cor); // Retângulo médio
+        x_min = 10, x_max = 110;
+        y_min = 10, y_max = 56;
+        break;
+    case 3:
+        ssd1306_rect(&ssd, 20, 20, 88, 44, cor, !cor); // Retângulo pequeno
+        x_min = 20, x_max = 100;
+        y_min = 20, y_max = 56;
+        break;
+    case 4:
+        ssd1306_circle(&ssd, 64, 32, 27, cor); // Círculo médio
+        x_min = 64 - 27 + 4;                   // Ajuste para manter o quadrado dentro do círculo
+        x_max = 64 + 27 - 4;
+        y_min = 32 - 27 + 4;
+        y_max = 32 + 27 - 4;
+        break;
+    case 5:
+        ssd1306_circle(&ssd, 64, 32, 32, cor); // Círculo grande
+        x_min = 64 - 32 + 4;                   // Ajuste para manter o quadrado dentro do círculo
+        x_max = 64 + 32 - 4;
+        y_min = 32 - 32 + 4;
+        y_max = 32 + 32 - 4;
+        break;
+    case 6:
+        ssd1306_rect(&ssd, 0, 0, 128, 64, !cor, !cor); // Sem retângulo
+        break;
+    }
+
+    // Mapeia os valores do joystick para as coordenadas do display
+    joystick_x = (vrx_value * (x_max - x_min)) / 4095 + x_min;
+    joystick_y = y_max - (vry_value * (y_max - y_min)) / 4095;
+
+    // Desenha o quadrado 8x8 na posição calculada
+    ssd1306_rect(&ssd, joystick_y, joystick_x, 8, 8, cor, cor);
+
+    // Atualiza o display
+    ssd1306_send_data(&ssd);
 }
 
-void led_verde_ON_display()
+// Inicializa o LED verde para o botão do joystick
+void init_LED_G()
 {
-    ssd1306_t ssd; // Declare the ssd variable
-    ssd1306_init(&ssd, WIDTH, HEIGHT, false, endereco, I2C_PORT); // Initialize the display
-
-    cor = !cor;
-    // Atualiza o conteúdo do display com animações
-    ssd1306_fill(&ssd, !cor); // Limpa o display
-    ssd1306_rect(&ssd, 3, 3, 122, 58, cor, !cor); // Desenha um retângulo
-    ssd1306_draw_string(&ssd, " ", 8, 10); // Desenha uma string
-    ssd1306_draw_string(&ssd, "Led Verde ON", 20, 35); // Desenha uma string      
-    ssd1306_send_data(&ssd); // Atualiza o display
+    gpio_init(LED_G);
+    gpio_set_dir(LED_G, GPIO_OUT);
 }
 
-void led_verde_OFF_display()
+// Função chamada pelo botão do joystick
+static inline void handle_joystick_button_press()
 {
-    ssd1306_t ssd; // Declare the ssd variable
-    ssd1306_init(&ssd, WIDTH, HEIGHT, false, endereco, I2C_PORT); // Initialize the display
+    static bool local_led_state = false;
 
-    cor = !cor;
-    // Atualiza o conteúdo do display com animações
-    ssd1306_fill(&ssd, !cor); // Limpa o display
-    ssd1306_rect(&ssd, 3, 3, 122, 58, cor, !cor); // Desenha um retângulo
-    ssd1306_draw_string(&ssd, " ", 8, 10); // Desenha uma string
-    ssd1306_draw_string(&ssd, "Led Verde OFF", 20, 35); // Desenha uma string      
-    ssd1306_send_data(&ssd); // Atualiza o display
+    // Alterna o estado do LED verde
+    local_led_state = !local_led_state;
+    gpio_put(LED_G, local_led_state);
+
+    // Muda o estilo da borda
+    rect_stage = (rect_stage + 1) % 6;
+
+    update_display_with_joystick();
 }
 
-void led_azul_ON_display()
-{
-    ssd1306_t ssd; // Declare the ssd variable
-    ssd1306_init(&ssd, WIDTH, HEIGHT, false, endereco, I2C_PORT); // Initialize the display
-
-    cor = !cor;
-    // Atualiza o conteúdo do display com animações
-    ssd1306_fill(&ssd, !cor); // Limpa o display
-    ssd1306_rect(&ssd, 3, 3, 122, 58, cor, !cor); // Desenha um retângulo
-    ssd1306_draw_string(&ssd, " ", 8, 10); // Desenha uma string
-    ssd1306_draw_string(&ssd, "Led Azul ON", 25, 35); // Desenha uma string      
-    ssd1306_send_data(&ssd); // Atualiza o display
-}
-
-void led_azul_OFF_display()
-{
-    ssd1306_t ssd; // Declare the ssd variable
-    ssd1306_init(&ssd, WIDTH, HEIGHT, false, endereco, I2C_PORT); // Initialize the display
-
-    cor = !cor;
-    // Atualiza o conteúdo do display com animações
-    ssd1306_fill(&ssd, !cor); // Limpa o display
-    ssd1306_rect(&ssd, 3, 3, 122, 58, cor, !cor); // Desenha um retângulo
-    ssd1306_draw_string(&ssd, " ", 8, 10); // Desenha uma string
-    ssd1306_draw_string(&ssd, "Led Azul OFF", 25, 35); // Desenha uma string      
-    ssd1306_send_data(&ssd); // Atualiza o display
-}
-
-void led_vermelho_ON_display()
-{
-    ssd1306_t ssd; // Declare the ssd variable
-    ssd1306_init(&ssd, WIDTH, HEIGHT, false, endereco, I2C_PORT); // Initialize the display
-
-    cor = !cor;
-    // Atualiza o conteúdo do display com animações
-    ssd1306_fill(&ssd, !cor); // Limpa o display
-    ssd1306_rect(&ssd, 3, 3, 122, 58, cor, !cor); // Desenha um retângulo
-    ssd1306_draw_string(&ssd, " ", 8, 10); // Desenha uma string
-    ssd1306_draw_string(&ssd, "Led RED ON", 25, 35); // Desenha uma string      
-    ssd1306_send_data(&ssd); // Atualiza o display
-}
-
-void led_vermelho_OFF_display()
-{
-    ssd1306_t ssd; // Declare the ssd variable
-    ssd1306_init(&ssd, WIDTH, HEIGHT, false, endereco, I2C_PORT); // Initialize the display
-
-    cor = !cor;
-    // Atualiza o conteúdo do display com animações
-    ssd1306_fill(&ssd, !cor); // Limpa o display
-    ssd1306_rect(&ssd, 3, 3, 122, 58, cor, !cor); // Desenha um retângulo
-    ssd1306_draw_string(&ssd, " ", 8, 10); // Desenha uma string
-    ssd1306_draw_string(&ssd, "Led RED OFF", 25, 35); // Desenha uma string      
-    ssd1306_send_data(&ssd); // Atualiza o display
-}
-
-void numero_zero()
-{
-    ssd1306_t ssd; // Declare the ssd variable
-    ssd1306_init(&ssd, WIDTH, HEIGHT, false, endereco, I2C_PORT); // Initialize the display
-
-    cor = !cor;
-    // Atualiza o conteúdo do display com animações
-    ssd1306_fill(&ssd, !cor); // Limpa o display
-    ssd1306_rect(&ssd, 3, 3, 122, 58, cor, !cor); // Desenha um retângulo
-    ssd1306_draw_string(&ssd, " ", 8, 10); // Desenha uma string
-    ssd1306_draw_string(&ssd, "Numero exibido", 10, 10); // Desenha uma string
-    ssd1306_draw_string(&ssd, "  0  ", 50, 35); // Desenha uma string      
-    ssd1306_send_data(&ssd); // Atualiza o display
-}
-
-void numeros_um()
-{
-    ssd1306_t ssd; // Declare the ssd variable
-    ssd1306_init(&ssd, WIDTH, HEIGHT, false, endereco, I2C_PORT); // Initialize the display
-
-    cor = !cor;
-    // Atualiza o conteúdo do display com animações
-    ssd1306_fill(&ssd, !cor); // Limpa o display
-    ssd1306_rect(&ssd, 3, 3, 122, 58, cor, !cor); // Desenha um retângulo
-    ssd1306_draw_string(&ssd, " ", 8, 10); // Desenha uma string
-    ssd1306_draw_string(&ssd, "Numero exibido", 10, 10); // Desenha uma string
-    ssd1306_draw_string(&ssd, "  1  ", 50, 35); // Desenha uma string      
-    ssd1306_send_data(&ssd); // Atualiza o display
-}
-
-void numero_dois()
-{
-    ssd1306_t ssd; // Declare the ssd variable
-    ssd1306_init(&ssd, WIDTH, HEIGHT, false, endereco, I2C_PORT); // Initialize the display
-
-    cor = !cor;
-    // Atualiza o conteúdo do display com animações
-    ssd1306_fill(&ssd, !cor); // Limpa o display
-    ssd1306_rect(&ssd, 3, 3, 122, 58, cor, !cor); // Desenha um retângulo
-    ssd1306_draw_string(&ssd, " ", 8, 10); // Desenha uma string
-    ssd1306_draw_string(&ssd, "Numero exibido", 10, 10); // Desenha uma string
-    ssd1306_draw_string(&ssd, "  2  ", 50, 35); // Desenha uma string      
-    ssd1306_send_data(&ssd); // Atualiza o display
-}
-
-void numero_tres()
-{
-    ssd1306_t ssd; // Declare the ssd variable
-    ssd1306_init(&ssd, WIDTH, HEIGHT, false, endereco, I2C_PORT); // Initialize the display
-
-    cor = !cor;
-    // Atualiza o conteúdo do display com animações
-    ssd1306_fill(&ssd, !cor); // Limpa o display
-    ssd1306_rect(&ssd, 3, 3, 122, 58, cor, !cor); // Desenha um retângulo
-    ssd1306_draw_string(&ssd, " ", 8, 10); // Desenha uma string
-    ssd1306_draw_string(&ssd, "Numero exibido", 10, 10); // Desenha uma string
-    ssd1306_draw_string(&ssd, "  3  ", 50, 35); // Desenha uma string      
-    ssd1306_send_data(&ssd); // Atualiza o display
-}
-
-void numero_quatro()
-{
-    ssd1306_t ssd; // Declare the ssd variable
-    ssd1306_init(&ssd, WIDTH, HEIGHT, false, endereco, I2C_PORT); // Initialize the display
-
-    cor = !cor;
-    // Atualiza o conteúdo do display com animações
-    ssd1306_fill(&ssd, !cor); // Limpa o display
-    ssd1306_rect(&ssd, 3, 3, 122, 58, cor, !cor); // Desenha um retângulo
-    ssd1306_draw_string(&ssd, " ", 8, 10); // Desenha uma string
-    ssd1306_draw_string(&ssd, "Numero exibido", 10, 10); // Desenha uma string
-    ssd1306_draw_string(&ssd, "  4  ", 50, 35); // Desenha uma string      
-    ssd1306_send_data(&ssd); // Atualiza o display
-}
-
-void numero_cinco()
-{
-    ssd1306_t ssd; // Declare the ssd variable
-    ssd1306_init(&ssd, WIDTH, HEIGHT, false, endereco, I2C_PORT); // Initialize the display
-
-    cor = !cor;
-    // Atualiza o conteúdo do display com animações
-    ssd1306_fill(&ssd, !cor); // Limpa o display
-    ssd1306_rect(&ssd, 3, 3, 122, 58, cor, !cor); // Desenha um retângulo
-    ssd1306_draw_string(&ssd, " ", 8, 10); // Desenha uma string
-    ssd1306_draw_string(&ssd, "Numero exibido", 10, 10); // Desenha uma string
-    ssd1306_draw_string(&ssd, "  5  ", 50, 35); // Desenha uma string      
-    ssd1306_send_data(&ssd); // Atualiza o display
-}
-
-void numero_seis()
-{
-    ssd1306_t ssd; // Declare the ssd variable
-    ssd1306_init(&ssd, WIDTH, HEIGHT, false, endereco, I2C_PORT); // Initialize the display
-
-    cor = !cor;
-    // Atualiza o conteúdo do display com animações
-    ssd1306_fill(&ssd, !cor); // Limpa o display
-    ssd1306_rect(&ssd, 3, 3, 122, 58, cor, !cor); // Desenha um retângulo
-    ssd1306_draw_string(&ssd, " ", 8, 10); // Desenha uma string
-    ssd1306_draw_string(&ssd, "Numero exibido", 10, 10); // Desenha uma string
-    ssd1306_draw_string(&ssd, "  6  ", 50, 35); // Desenha uma string      
-    ssd1306_send_data(&ssd); // Atualiza o display
-}
-
-void numero_sete()
-{
-    ssd1306_t ssd; // Declare the ssd variable
-    ssd1306_init(&ssd, WIDTH, HEIGHT, false, endereco, I2C_PORT); // Initialize the display
-
-    cor = !cor;
-    // Atualiza o conteúdo do display com animações
-    ssd1306_fill(&ssd, !cor); // Limpa o display
-    ssd1306_rect(&ssd, 3, 3, 122, 58, cor, !cor); // Desenha um retângulo
-    ssd1306_draw_string(&ssd, " ", 8, 10); // Desenha uma string
-    ssd1306_draw_string(&ssd, "Numero exibido", 10, 10); // Desenha uma string
-    ssd1306_draw_string(&ssd, "  7  ", 50, 35); // Desenha uma string      
-    ssd1306_send_data(&ssd); // Atualiza o display
-}
-
-void numero_oito()
-{
-    ssd1306_t ssd; // Declare the ssd variable
-    ssd1306_init(&ssd, WIDTH, HEIGHT, false, endereco, I2C_PORT); // Initialize the display
-
-    cor = !cor;
-    // Atualiza o conteúdo do display com animações
-    ssd1306_fill(&ssd, !cor); // Limpa o display
-    ssd1306_rect(&ssd, 3, 3, 122, 58, cor, !cor); // Desenha um retângulo
-    ssd1306_draw_string(&ssd, " ", 8, 10); // Desenha uma string
-    ssd1306_draw_string(&ssd, "Numero exibido", 10, 10); // Desenha uma string
-    ssd1306_draw_string(&ssd, "  8  ", 50, 35); // Desenha uma string      
-    ssd1306_send_data(&ssd); // Atualiza o display
-}
-
-void numero_nove()
-{
-    ssd1306_t ssd; // Declare the ssd variable
-    ssd1306_init(&ssd, WIDTH, HEIGHT, false, endereco, I2C_PORT); // Initialize the display
-
-    cor = !cor;
-    // Atualiza o conteúdo do display com animações
-    ssd1306_fill(&ssd, !cor); // Limpa o display
-    ssd1306_rect(&ssd, 3, 3, 122, 58, cor, !cor); // Desenha um retângulo
-    ssd1306_draw_string(&ssd, " ", 8, 10); // Desenha uma string
-    ssd1306_draw_string(&ssd, "Numero exibido", 10, 10); // Desenha uma string
-    ssd1306_draw_string(&ssd, "  9  ", 50, 35); // Desenha uma string      
-    ssd1306_send_data(&ssd); // Atualiza o display
-}
-
-void comando_invalido()
-{
-    ssd1306_t ssd; // Declare the ssd variable
-    ssd1306_init(&ssd, WIDTH, HEIGHT, false, endereco, I2C_PORT); // Initialize the display
-
-    cor = !cor;
-    // Atualiza o conteúdo do display com animações
-    ssd1306_fill(&ssd, !cor); // Limpa o display
-    ssd1306_rect(&ssd, 3, 3, 122, 58, cor, !cor); // Desenha um retângulo
-    ssd1306_draw_string(&ssd, " ", 8, 10); // Desenha uma string
-    ssd1306_draw_string(&ssd, "Comando", 35, 10); // Desenha uma string
-    ssd1306_draw_string(&ssd, "invalido", 35, 25); // Desenha uma string      
-    ssd1306_draw_string(&ssd, "Tente novamente", 6, 45); // Desenha uma string   
-    ssd1306_send_data(&ssd); // Atualiza o display
-}
-
-#endif
+#endif // CONFIGDISPLAY_H
