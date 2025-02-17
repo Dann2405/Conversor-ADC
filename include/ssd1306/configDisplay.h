@@ -66,17 +66,17 @@ static inline void update_display_with_joystick()
         break;
     case 4:
         ssd1306_circle(&ssd, 64, 32, 27, cor); // Círculo médio
-        x_min = 64 - 27 + 4;                   // Ajuste para manter o quadrado dentro do círculo
-        x_max = 64 + 27 - 4;
-        y_min = 32 - 27 + 4;
-        y_max = 32 + 27 - 4;
+        x_min = 64 - 27 + 3.14;                   // Ajuste para manter o quadrado dentro do círculo
+        x_max = 64 + 27 - 3.14;
+        y_min = 32 - 27 + 3.14;
+        y_max = 32 + 27 - 3.14;
         break;
     case 5:
         ssd1306_circle(&ssd, 64, 32, 32, cor); // Círculo grande
-        x_min = 64 - 32 + 4;                   // Ajuste para manter o quadrado dentro do círculo
-        x_max = 64 + 32 - 4;
-        y_min = 32 - 32 + 4;
-        y_max = 32 + 32 - 4;
+        x_min = 64 - 32 + 3.14;                   // Ajuste para manter o quadrado dentro do círculo
+        x_max = 64 + 32 - 3.14;
+        y_min = 32 - 32 + 3.14;
+        y_max = 32 + 32 - 3.14;
         break;
     case 6:
         ssd1306_rect(&ssd, 0, 0, 128, 64, !cor, !cor); // Sem retângulo
@@ -87,8 +87,13 @@ static inline void update_display_with_joystick()
     joystick_x = (vrx_value * (x_max - x_min)) / 4095 + x_min;
     joystick_y = y_max - (vry_value * (y_max - y_min)) / 4095;
 
-    // Desenha o quadrado 8x8 na posição calculada
-    ssd1306_rect(&ssd, joystick_y, joystick_x, 8, 8, cor, cor);
+    // Desenha um triângulo na posição calculada
+    int x1 = joystick_x, y1 = joystick_y;
+    int x2 = joystick_x + 4, y2 = joystick_y;
+    int x3 = joystick_x + 2, y3 = joystick_y - 4;
+    ssd1306_line(&ssd, x1, y1, x2, y2, cor);
+    ssd1306_line(&ssd, x2, y2, x3, y3, cor);
+    ssd1306_line(&ssd, x3, y3, x1, y1, cor);
 
     // Atualiza o display
     ssd1306_send_data(&ssd);
