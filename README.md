@@ -122,4 +122,4 @@ A implementação demonstra a flexibilidade e robustez do RP2040 para integrar d
 
 ## Vídeo de Demonstração
 
-*(A ser inserido...)*
+Click [AQUI](https://drive.google.com/file/d/1l2RjV6Uvzw-DkmrX9Zo3_SjhozcLW_zD/view?usp=sharing) para assistir o vídeo de demonstração.
